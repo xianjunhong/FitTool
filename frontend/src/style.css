@@ -1,0 +1,27 @@
+:root {
+  font-family: 'Avenir Next', 'DIN Alternate', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #0f172a;
+  line-height: 1.4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(245, 158, 11, 0.22), transparent 35%),
+    radial-gradient(circle at 82% 10%, rgba(14, 165, 233, 0.15), transparent 30%),
+    linear-gradient(180deg, #fefce8 0%, #f8fafc 48%, #eef2ff 100%);
+}
+
+.leaflet-container {
+  font: 12px/1.5 'Avenir Next', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
