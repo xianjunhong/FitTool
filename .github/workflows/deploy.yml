@@ -18,109 +18,46 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           APP_DIR: ${{ secrets.APP_DIR }}
-          APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
-          APP_DOMAIN_WWW: ${{ secrets.APP_DOMAIN_WWW }}
-          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           port: ${{ secrets.SERVER_PORT }}
-          username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets.SERVER_USER || 'root' }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: APP_DIR,APP_DOMAIN,APP_DOMAIN_WWW,CERTBOT_EMAIL
+          envs: APP_DIR
           script_stop: true
           script: |
             set -eu
-            echo "[1/10] Enter project directory"
+            echo "[1/8] Enter project directory"
             cd "$APP_DIR"
 
-            : "${APP_DOMAIN:?APP_DOMAIN secret is required}"
-            : "${CERTBOT_EMAIL:?CERTBOT_EMAIL secret is required}"
-
-            echo "[2/10] Sync latest code"
+            echo "[2/8] Sync latest code"
             git fetch origin main
             git reset --hard origin/main
 
-            echo "[3/10] Render nginx config with domain"
-            cat > nginx/nginx.conf <<EOF
-            # HTTP 80: 用于 Certbot 校验并重定向 HTTPS
-            server {
-              listen 80;
-              server_name $APP_DOMAIN $APP_DOMAIN_WWW;
-
-              location /.well-known/acme-challenge/ {
-                root /var/www/certbot;
-              }
-
-              location / {
-                return 301 https://\$host\$request_uri;
-              }
-            }
-
-            # HTTPS 443: 静态前端 + /api 反代
-            server {
-              listen 443 ssl http2;
-              server_name $APP_DOMAIN $APP_DOMAIN_WWW;
-
-              ssl_certificate /etc/letsencrypt/live/$APP_DOMAIN/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/$APP_DOMAIN/privkey.pem;
-              ssl_trusted_certificate /etc/letsencrypt/live/$APP_DOMAIN/chain.pem;
-
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_session_cache shared:SSL:10m;
-              ssl_session_timeout 1d;
-
-              root /usr/share/nginx/html;
-              index index.html;
-
-              location / {
-                try_files \$uri \$uri/ /index.html;
-              }
-
-              location /api/ {
-                proxy_pass http://backend:8080/api/;
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-                proxy_read_timeout 60s;
-              }
-
-              gzip on;
-              gzip_types text/plain text/css application/javascript application/json;
-              gzip_min_length 1024;
-            }
-            EOF
-
-            echo "[4/10] Build frontend dist via Node container"
+            echo "[3/8] Build frontend dist via Node container"
             docker run --rm -v "$PWD/frontend:/app" -w /app node:20-alpine sh -lc "if [ -f package-lock.json ]; then npm ci; else npm install; fi && npm run build"
 
-            echo "[5/10] Print Docker version"
+            echo "[4/8] Print Docker version"
             docker --version
 
-            echo "[6/10] Pre-pull backend runtime image"
+            echo "[5/8] Pre-pull backend runtime image"
             docker pull eclipse-temurin:17-jre
 
-            echo "[7/10] Ensure certbot directories"
+            echo "[6/8] Ensure certbot directories"
             mkdir -p certbot/conf certbot/www
 
-            echo "[8/10] Issue certificate if missing"
-            if [ ! -f "certbot/conf/live/$APP_DOMAIN/fullchain.pem" ]; then
-              DOMAIN_ARGS="-d $APP_DOMAIN"
-              if [ -n "${APP_DOMAIN_WWW}" ]; then
-                DOMAIN_ARGS="$DOMAIN_ARGS -d $APP_DOMAIN_WWW"
-              fi
+            echo "[7/8] Issue certificate if missing"
+            if [ ! -f "certbot/conf/live/www.phenoseed.com/fullchain.pem" ]; then
               docker compose stop nginx || true
               docker run --rm -p 80:80 \
                 -v "$PWD/certbot/conf:/etc/letsencrypt" \
                 -v "$PWD/certbot/www:/var/www/certbot" \
                 certbot/certbot certonly --standalone --non-interactive --agree-tos \
-                --email "$CERTBOT_EMAIL" $DOMAIN_ARGS
+                --email "1648323901@qq.com" -d "www.phenoseed.com"
             fi
 
-            echo "[9/10] Rebuild backend and start services"
+            echo "[8/8] Rebuild services and cleanup"
             docker compose up -d --build backend nginx certbot
-
-            echo "[10/10] Reload nginx and cleanup"
             docker exec fittool-nginx nginx -s reload || true
 
             docker image prune -f
