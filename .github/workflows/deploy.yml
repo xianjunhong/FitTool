@@ -27,6 +27,27 @@ jobs:
           script_stop: true
           script: |
             set -eu
+
+            retry() {
+              attempts="$1"
+              shift
+              n=1
+              delay=5
+              while true; do
+                if "$@"; then
+                  return 0
+                fi
+                if [ "$n" -ge "$attempts" ]; then
+                  echo "Command failed after $attempts attempts: $*"
+                  return 1
+                fi
+                echo "Attempt $n failed. Retrying in ${delay}s: $*"
+                sleep "$delay"
+                n=$((n + 1))
+                delay=$((delay * 2))
+              done
+            }
+
             echo "[1/8] Enter project directory"
             cd "$APP_DIR"
 
@@ -35,13 +56,13 @@ jobs:
             git reset --hard origin/main
 
             echo "[3/8] Build frontend dist via Node container"
-            docker run --rm -v "$PWD/frontend:/app" -w /app node:20-alpine sh -lc "if [ -f package-lock.json ]; then npm ci; else npm install; fi && npm run build"
+            retry 3 docker run --rm -v "$PWD/frontend:/app" -w /app node:20-alpine sh -lc "if [ -f package-lock.json ]; then npm ci; else npm install; fi && npm run build"
 
             echo "[4/8] Print Docker version"
             docker --version
 
             echo "[5/8] Pre-pull backend runtime image"
-            docker pull eclipse-temurin:17-jre
+            retry 4 docker pull eclipse-temurin:17-jre
 
             echo "[6/8] Ensure certbot directories"
             mkdir -p certbot/conf certbot/www
@@ -49,7 +70,7 @@ jobs:
             echo "[7/8] Issue certificate if missing"
             if [ ! -f "certbot/conf/live/www.phenoseed.com/fullchain.pem" ]; then
               docker compose stop nginx || true
-              docker run --rm -p 80:80 \
+              retry 4 docker run --rm -p 80:80 \
                 -v "$PWD/certbot/conf:/etc/letsencrypt" \
                 -v "$PWD/certbot/www:/var/www/certbot" \
                 certbot/certbot certonly --standalone --non-interactive --agree-tos \
@@ -57,7 +78,7 @@ jobs:
             fi
 
             echo "[8/8] Rebuild services and cleanup"
-            docker compose up -d --build backend nginx certbot
+            retry 4 docker compose up -d --build backend nginx certbot
             docker exec fittool-nginx nginx -s reload || true
 
             docker image prune -f
