@@ -7,8 +7,8 @@ RUN mvn dependency:go-offline -q
 COPY src ./src
 RUN mvn clean package -DskipTests -q && cp target/*.jar app.jar
 
-# 运行阶段使用 JRE 镜像，减小镜像体积
-FROM eclipse-temurin:17-jre
+# 运行阶段沿用可稳定拉取的 Maven + JDK 镜像
+FROM maven:3.9.6-eclipse-temurin-17
 WORKDIR /app
 COPY --from=builder /app/app.jar ./app.jar
 EXPOSE 8080

@@ -61,8 +61,8 @@ jobs:
             echo "[4/8] Print Docker version"
             docker --version
 
-            echo "[5/8] Pre-pull backend runtime image"
-            retry 4 docker pull eclipse-temurin:17-jre
+            echo "[5/8] Pre-pull backend image"
+            retry 4 docker pull maven:3.9.6-eclipse-temurin-17
 
             echo "[6/8] Ensure certbot directories"
             mkdir -p certbot/conf certbot/www
