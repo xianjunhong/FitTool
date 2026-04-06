@@ -536,6 +536,22 @@ onBeforeUnmount(() => {
       <div :class="['panel-wrap', { collapsed: panelCollapsed }]">
         <aside class="control-panel">
         <el-card class="glass-card">
+          <a
+            class="card-corner-github"
+            href="https://github.com/xianjunhong/FitTool"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open FitTool GitHub repository"
+            title="GitHub"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.33c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.56 7.56 0 0 1 8 4.69c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 8 0Z"
+              />
+            </svg>
+          </a>
+
           <template #header>
             <div class="card-header-text">
               <div class="card-title">Fit Tool</div>
@@ -657,6 +673,7 @@ onBeforeUnmount(() => {
 }
 
 .glass-card {
+  position: relative;
   height: 100%;
   border-radius: 0 14px 14px 0;
   border: 1px solid rgba(148, 163, 184, 0.28);
@@ -664,6 +681,42 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(6px);
   animation: fade-up 420ms ease;
   overflow: hidden;
+}
+
+.card-corner-github {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 64px;
+  height: 64px;
+  z-index: 5;
+  display: block;
+  color: #f8fafc;
+  background: transparent;
+  border-top-right-radius: 14px;
+  overflow: hidden;
+  transition: filter 160ms ease;
+}
+
+.card-corner-github::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #0f172a;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+}
+
+.card-corner-github:hover {
+  filter: brightness(1.1);
+}
+
+.card-corner-github svg {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 23px;
+  z-index: 1;
 }
 
 .card-title {
