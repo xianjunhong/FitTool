@@ -5,8 +5,19 @@ import Chart from 'chart.js/auto';
 import L from 'leaflet';
 import type { PreviewResponse, RoutePoint } from './types';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 const chinaBounds = L.latLngBounds(L.latLng(3.86, 73.66), L.latLng(53.55, 135.05));
+
+const defaultIconProto = L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: unknown };
+delete defaultIconProto._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow
+});
 
 const mapRef = ref<HTMLElement | null>(null);
 const paceChartRef = ref<HTMLCanvasElement | null>(null);
@@ -28,6 +39,8 @@ const preview = ref<PreviewResponse | null>(null);
 
 let map: L.Map | null = null;
 let polyline: L.Polyline | null = null;
+let clickMarkers: L.CircleMarker[] = [];
+let clickLabels: L.Marker[] = [];
 let currentLocationMarker: L.Marker | null = null;
 let previewMarker: L.CircleMarker | null = null;
 let previewTimer: number | null = null;
@@ -102,6 +115,28 @@ function initMap() {
   map.on('click', (event: L.LeafletMouseEvent) => {
     const point = { lat: event.latlng.lat, lng: event.latlng.lng };
     points.value.push(point);
+    const pointIndex = points.value.length;
+
+    const clickMarker = L.circleMarker([point.lat, point.lng], {
+      radius: 4,
+      color: '#f97316',
+      fillColor: '#fb923c',
+      fillOpacity: 0.95,
+      weight: 1
+    }).addTo(map!);
+    clickMarkers.push(clickMarker);
+
+    const clickLabel = L.marker([point.lat, point.lng], {
+      interactive: false,
+      keyboard: false,
+      icon: L.divIcon({
+        className: 'click-point-label',
+        html: String(pointIndex),
+        iconSize: [20, 20],
+        iconAnchor: [10, -8]
+      })
+    }).addTo(map!);
+    clickLabels.push(clickLabel);
 
     if (polyline) {
       polyline.setLatLngs(points.value as L.LatLngExpression[]);
@@ -149,6 +184,13 @@ function clearRoute() {
     map.removeLayer(polyline);
     polyline = null;
   }
+
+  if (map) {
+    clickMarkers.forEach((marker) => map!.removeLayer(marker));
+    clickLabels.forEach((label) => map!.removeLayer(label));
+  }
+  clickMarkers = [];
+  clickLabels = [];
 
   stopPreviewPlayback();
   clearPreviewMarker();

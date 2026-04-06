@@ -25,3 +25,18 @@ body {
 .leaflet-container {
   font: 12px/1.5 'Avenir Next', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
+
+.click-point-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
