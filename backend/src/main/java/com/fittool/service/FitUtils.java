@@ -48,7 +48,7 @@ public class FitUtils {
     }
 
 
-    // 计算累计距离数组和总距离�?
+    // 计算累计距离数组和总距离�?
     public static DistanceSeries buildDistanceSeries(List<Point> allPoints) {
         List<Double> distances = new ArrayList<>(Arrays.asList(0D));
         Double totalDist = 0D;
@@ -79,7 +79,8 @@ public class FitUtils {
                                       Integer paceSecondsPerKm,
                                       Integer hrRest,
                                       Integer hrMax,
-                                      Double weightKg
+                                      Double weightKg,
+                                      List<Double> altitudes
                                       ) {
 
 
@@ -92,7 +93,7 @@ public class FitUtils {
         Double avgSpeedTarget = totalDist / targetDurationSec;
 
 
-//        基础速度浮动系数�?.98~1.04），再加一点随机�?
+//        基础速度浮动系数�?.98~1.04），再加一点随机�?
         double baseSpeedFactor = 0.98 + Math.random() * 0.06;
         double phase1 = Math.random() * Math.PI * 2;
         double phase2 = Math.random() * Math.PI * 2;
@@ -104,29 +105,29 @@ public class FitUtils {
 
         double currentHr = hrRest;
 
-        // 1️⃣ 模拟瞬时速度和心�?
+        // 1️⃣ 模拟瞬时速度和心�?
         for (int i = 0; i < n; i++) {
-//            进行到哪一部分�?
+//            进行到哪一部分�?
             double frac = distances.get(i) / totalDist;
 //模拟跑步中长期的速度起伏
             double longWave = 0.04 * Math.sin(frac * Math.PI * 2 + phase1);
-//            周期更短，波峰更密集 �?快速小幅波动，±2% 的速度波动
+//            周期更短，波峰更密集 �?快速小幅波动，±2% 的速度波动
             double shortWave = 0.02 * Math.sin(frac * Math.PI * 6 + phase2);
-//            每个轨迹点的瞬时速度（m/s�?
+//            每个轨迹点的瞬时速度（m/s�?
             double speedRaw = avgSpeedTarget * baseSpeedFactor * (1 + longWave + shortWave);
             instSpeedRaw[i] = speedRaw;
 
-//            当前跑步比目标快还是慢，瞬时速度转成了一个百分比努力强度，[0,1]，用于后续心率计�?
+//            当前跑步比目标快还是慢，瞬时速度转成了一个百分比努力强度，[0,1]，用于后续心率计�?
             double effort = Math.min(1.0, Math.max(0.0, speedRaw / (avgSpeedTarget == 0 ? 1e-6 : avgSpeedTarget)));
 
-//            基础运动强度，最终用来计算心�?
+//            基础运动强度，最终用来计算心�?
             double intensityBase;
             if (frac < 0.1) {
 //                热身，心率逐渐上升
                 double f = frac / 0.1;
                 intensityBase = 0.4 + 0.4 * f;
             } else if (frac < 0.8) {
-//                中段恒定强度，有小波�?
+//                中段恒定强度，有小波�?
                 double f = (frac - 0.1) / 0.7;
                 intensityBase = 0.8 + 0.05 * Math.sin(f * Math.PI * 2);
             } else {
@@ -146,7 +147,7 @@ public class FitUtils {
         double[] segDurationsRaw = new double[Math.max(0, n)];
         double rawDuration = 0;
         for (int i = 1; i < n; i++) {
-//            每段的距�?
+//            每段的距�?
             double ds = distances.get(i) - distances.get(i - 1);
             double v = instSpeedRaw[i] > 0 ? instSpeedRaw[i] : avgSpeedTarget;
             double dt = ds / v;
@@ -164,12 +165,17 @@ public class FitUtils {
             double speed = instSpeedRaw[i] / scale;
             double frac = distances.get(i) / totalDist;
 
-//            步频（步/分钟�?
+//            步频（步/分钟�?
             double runningCadence = simulateCadence(speed);
 //            步幅（m/步）
             double strideLength = runningCadence > 0 ? speed / (runningCadence / 60.0) : 1.0;
             int power = (int) Math.round(weightKg * speed * 1.04);
-            double altitude = baseAlt + 2 * Math.sin(frac * Math.PI * 4) + (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.8;
+            boolean hasRealAltitude = altitudes != null
+                    && altitudes.size() == n
+                    && altitudes.get(i) != null;
+            double altitude = hasRealAltitude
+                    ? altitudes.get(i)
+                    : baseAlt + 2 * Math.sin(frac * Math.PI * 4) + (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.8;
             t += segDurationsRaw[i] * scale;
 
             SampleDto sample = new SampleDto();
@@ -189,8 +195,8 @@ public class FitUtils {
 
         }
 
-        // 4️⃣ 汇总指�?
-//        总时�?
+        // 4️⃣ 汇总
+//        总时
         Double totalDurationSec = samples.isEmpty() ? targetDurationSec :  samples.get(samples.size() - 1).getTimeSec();
 //平均步频
         double avgRunningCadence = Math.round(samples.stream().mapToDouble(SampleDto::getRunningCadence).average().orElse(0));

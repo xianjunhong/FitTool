@@ -4,3 +4,10 @@ server:
 spring:
   application:
     name: fittool-backend
+
+elevation:
+  enabled: true
+  base-url: https://api.open-elevation.com
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+  batch-size: 200

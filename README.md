@@ -62,6 +62,38 @@ FitCSVTool.jar           FIT 调试工具
   - 入参：同上
   - 出参：`application/vnd.ant.fit` 二进制文件
 
+### 海拔数据来源（Open-Elevation）
+
+项目已支持通过 Open-Elevation 获取真实海拔，并用于：
+
+- 每个采样点的 altitude
+- 总爬升 totalAscent
+- 总下降 totalDescent
+
+处理策略：
+
+- 优先调用 Open-Elevation 的 `POST /api/v1/lookup`（批量请求）
+- 如果外部接口超时、异常或返回数量不匹配，自动回退到本地模拟海拔
+- `preview` 与 `generate-fit` 走同一套高程逻辑，保证预览与导出一致
+
+后端相关实现：
+
+- `backend/src/main/java/com/fittool/service/ElevationService.java`
+- `backend/src/main/java/com/fittool/service/FitService.java`
+- `backend/src/main/java/com/fittool/service/FitUtils.java`
+
+配置项（`application.yml`）：
+
+- `elevation.enabled`：是否启用真实高程（`true/false`）
+- `elevation.base-url`：高程服务地址（默认 `https://api.open-elevation.com`）
+- `elevation.connect-timeout-ms`：连接超时（毫秒）
+- `elevation.read-timeout-ms`：读取超时（毫秒）
+- `elevation.batch-size`：单次批量查询点数
+
+配置文件位置：
+
+- `backend/src/main/resources/application.yml`
+
 ## 本地开发
 
 ### 1) 启动后端

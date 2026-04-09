@@ -19,10 +19,18 @@ import java.util.List;
 @Service
 public class FitService {
 
+        private final ElevationService elevationService;
+
+        public FitService(ElevationService elevationService) {
+                this.elevationService = elevationService;
+        }
+
         public PreviewResponseDto preview(PreviewRequestDto request) {
 
 //        得到所有点
         List<Point> allPoints = FitUtils.buildAllPoints(request.getPoints(), request.getLapCount());
+//        预览不需要展示高度信息了，节省一次调用
+        List<Double> altitudes = null;
 //        得到距离数组和总距离
         DistanceSeries distanceSeries = FitUtils.buildDistanceSeries(allPoints);
 //      卡路里
@@ -35,7 +43,8 @@ public class FitService {
                 request.getPaceSecondsPerKm(),
                 request.getHrRest(),
                 request.getHrMax(),
-                request.getWeightKg()
+                request.getWeightKg(),
+                altitudes
         );
 
         PreviewResponseDto previewResponseDto = new PreviewResponseDto();
@@ -55,6 +64,8 @@ public class FitService {
 
 //        得到所有点
         List<Point> allPoints = FitUtils.buildAllPoints(request.getPoints(), request.getLapCount());
+//        得到每个点的高度
+        List<Double> altitudes = elevationService.fetchAltitudesOrNull(allPoints);
 //        得到距离数组和总距离
         DistanceSeries distanceSeries = FitUtils.buildDistanceSeries(allPoints);
 //      卡路里
@@ -67,7 +78,8 @@ public class FitService {
                 request.getPaceSecondsPerKm(),
                 request.getHrRest(),
                 request.getHrMax(),
-                request.getWeightKg()
+                request.getWeightKg(),
+                altitudes
         );
 
                 Path tempPath = Files.createTempFile("fittool-run-", ".fit");
