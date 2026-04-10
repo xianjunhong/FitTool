@@ -34,7 +34,7 @@ const startDateInput = ref('');
 const pacePerKm = ref(6.0);
 const panelCollapsed = ref(false);
 
-const points = ref<RoutePoint[]>([]);
+const coordinateBOS = ref<RoutePoint[]>([]);
 const preview = ref<PreviewResponse | null>(null);
 
 let map: L.Map | null = null;
@@ -50,10 +50,10 @@ let paceChart: Chart | null = null;
 let hrChart: Chart | null = null;
 
 const distanceKm = computed(() => {
-  if (points.value.length < 2) {
+  if (coordinateBOS.value.length < 2) {
     return 0;
   }
-  return (computeDistanceMeters(points.value) / 1000) * Math.max(1, lapCount.value);
+  return (computeDistanceMeters(coordinateBOS.value) / 1000) * Math.max(1, lapCount.value);
 });
 
 const durationMin = computed(() => {
@@ -114,8 +114,8 @@ function initMap() {
 
   map.on('click', (event: L.LeafletMouseEvent) => {
     const point = { lat: event.latlng.lat, lng: event.latlng.lng };
-    points.value.push(point);
-    const pointIndex = points.value.length;
+    coordinateBOS.value.push(point);
+    const pointIndex = coordinateBOS.value.length;
 
     const clickMarker = L.circleMarker([point.lat, point.lng], {
       radius: 4,
@@ -139,9 +139,9 @@ function initMap() {
     clickLabels.push(clickLabel);
 
     if (polyline) {
-      polyline.setLatLngs(points.value as L.LatLngExpression[]);
+      polyline.setLatLngs(coordinateBOS.value as L.LatLngExpression[]);
     } else {
-      polyline = L.polyline(points.value as L.LatLngExpression[], {
+      polyline = L.polyline(coordinateBOS.value as L.LatLngExpression[], {
         color: '#f97316',
         weight: 4,
         lineCap: 'round'
@@ -177,7 +177,7 @@ function clearPreviewMarker() {
 }
 
 function clearRoute() {
-  points.value = [];
+  coordinateBOS.value = [];
   preview.value = null;
 
   if (polyline && map) {
@@ -316,7 +316,7 @@ function buildPayload() {
   const parsedDate = new Date(startDateInput.value);
   return {
     startDate: parsedDate.toISOString(),
-    points: points.value,
+    coordinateBOS: coordinateBOS.value,
     paceSecondsPerKm: parsePaceSeconds(pacePerKm.value),
     hrRest: Math.round(hrRest.value),
     hrMax: Math.round(hrMax.value),
@@ -326,7 +326,7 @@ function buildPayload() {
 }
 
 async function runPreview() {
-  if (points.value.length < 2) {
+  if (coordinateBOS.value.length < 2) {
     ElMessage.warning('请先在地图上至少添加两个轨迹点');
     return;
   }
@@ -392,7 +392,7 @@ async function runPreview() {
 }
 
 async function downloadFit() {
-  if (points.value.length < 2) {
+  if (coordinateBOS.value.length < 2) {
     ElMessage.warning('请先绘制轨迹后再导出 FIT');
     return;
   }
@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
 
           <div class="top-metrics">
             <span class="metric-pill">预估时长 {{ durationMin }} 分钟</span>
-            <span class="metric-pill">轨迹点 {{ points.length }}</span>
+            <span class="metric-pill">轨迹点 {{ coordinateBOS.length }}</span>
             <span class="metric-pill">地图估算 {{ distanceKm.toFixed(2) }} km</span>
           </div>
 

@@ -1,8 +1,8 @@
 package com.fittool.controller;
 
-import com.fittool.domain.Point;
-import com.fittool.dto.request.PreviewRequestDto;
-import com.fittool.dto.response.PreviewResponseDto;
+import com.fittool.bo.CoordinateBO;
+import com.fittool.dto.PreviewDTO;
+import com.fittool.vo.PreviewVO;
 import com.fittool.service.FitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -24,26 +24,24 @@ public class FitController {
 
 
     @PostMapping("/preview")
-    public PreviewResponseDto preview(@RequestBody PreviewRequestDto request) {
+    public PreviewVO preview(@RequestBody PreviewDTO request) {
 
         return fitService.preview(request);
     }
 
 
     @PostMapping("/generate-fit")
-    public ResponseEntity<byte[]> generate(@RequestBody PreviewRequestDto request) throws IOException {
+    public ResponseEntity<byte[]> generate(@RequestBody PreviewDTO request) throws IOException {
 
-        List<Point> points = request.getPoints();
+        List<CoordinateBO> coordinateBOS = request.getCoordinateBOS();
 
-        for (Point point : points) {
-            System.out.println(point.getLat() + " " + point.getLng());
+        for (CoordinateBO coordinateBO : coordinateBOS) {
+            System.out.println(coordinateBO.getLat() + " " + coordinateBO.getLng());
         }
         System.out.println("-----------------");
 
 
 
-
-  
         byte[] fitBytes = fitService.generate(request);
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition", "attachment; filename=run" + ".fit");

@@ -1,18 +1,17 @@
-package com.fittool.dto.response;
+package com.fittool.vo;
 
+import com.fittool.bo.SampleBO;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-public class PreviewResponseDto {
+public class PreviewVO {
 
 
-    private List<SampleDto> samples;
+    private List<SampleBO> samples;
     private Double totalDistanceMeters;
     private Double totalDurationSec;
     private Integer calories;
-
-
 
 }

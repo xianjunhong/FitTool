@@ -1,13 +1,11 @@
-package com.fittool.domain;
-
-import com.fittool.dto.response.SampleDto;
+package com.fittool.bo;
 
 import lombok.Data;
 import java.util.List;
 
 @Data
-public class ComputeSamplesResult {
-    private List<SampleDto> samples;
+public class ComputeSamplesResultBO {
+    private List<SampleBO> samples;
     private Double totalDurationSec;
     private Double avgRunningCadence;
     private Double avgStrideLength;

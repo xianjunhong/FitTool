@@ -1,6 +1,6 @@
-package com.fittool.dto.request;
+package com.fittool.dto;
 
-import com.fittool.domain.Point;
+import com.fittool.bo.CoordinateBO;
 
 import lombok.Data;
 
@@ -8,10 +8,10 @@ import java.time.Instant;
 import java.util.List;
 
 @Data
-public class PreviewRequestDto {
+public class PreviewDTO {
 
     private Instant startDate;
-    private List<Point> points;
+    private List<CoordinateBO> coordinateBOS;
     private Integer paceSecondsPerKm;
     private Integer hrRest;
     private Integer hrMax;

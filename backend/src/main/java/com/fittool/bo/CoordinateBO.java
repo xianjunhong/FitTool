@@ -1,10 +1,10 @@
-package com.fittool.domain;
+package com.fittool.bo;
 
 
 import lombok.Data;
 
 @Data
-public class Point {
+public class CoordinateBO {
 
 
     private Double lat;

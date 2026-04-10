@@ -1,12 +1,11 @@
-package com.fittool.service;
+package com.fittool.utils;
 
-import com.fittool.domain.ComputeSamplesResult;
-import com.fittool.domain.DistanceSeries;
-import com.fittool.domain.Point;
-import com.fittool.dto.response.SampleDto;
+import com.fittool.bo.ComputeSamplesResultBO;
+import com.fittool.bo.CoordinateBO;
+import com.fittool.bo.DistanceSeriesBO;
+import com.fittool.bo.SampleBO;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -30,7 +29,7 @@ public class FitUtils {
 
 
     public static double simulateCadence(double speed) {
-        Integer baseCadence = 170;
+        int baseCadence = 170;
         double speedEffect = (speed - 2.5) * 8;
         double noise = (Math.random() - 0.5) * 6;
         double cadence = baseCadence + speedEffect + noise;
@@ -39,33 +38,33 @@ public class FitUtils {
 
 
 
-    public static List<Point> buildAllPoints(List<Point> basePoints, Integer laps) {
-        List<Point> allPoints = new ArrayList<>();
+    public static List<CoordinateBO> buildAllPoints(List<CoordinateBO> baseCoordinateBOS, Integer laps) {
+        List<CoordinateBO> allCoordinateBOS = new ArrayList<>();
         for (int i = 0; i < laps; i++) {
-            allPoints.addAll(basePoints);
+            allCoordinateBOS.addAll(baseCoordinateBOS);
         }
-        return allPoints;
+        return allCoordinateBOS;
     }
 
 
-    // 计算累计距离数组和总距离�?
-    public static DistanceSeries buildDistanceSeries(List<Point> allPoints) {
-        List<Double> distances = new ArrayList<>(Arrays.asList(0D));
-        Double totalDist = 0D;
+    // 计算累计距离数组和总距离
+    public static DistanceSeriesBO buildDistanceSeries(List<CoordinateBO> allCoordinateBOS) {
+        List<Double> distances = new ArrayList<>(List.of(0D));
+        double totalDist = 0D;
 
-        for (int i = 1; i < allPoints.size(); i++) {
+        for (int i = 1; i < allCoordinateBOS.size(); i++) {
             float segment = haversineDistance(
-                    allPoints.get(i - 1).getLat(), allPoints.get(i - 1).getLng(),
-                    allPoints.get(i).getLat(), allPoints.get(i).getLng()
+                    allCoordinateBOS.get(i - 1).getLat(), allCoordinateBOS.get(i - 1).getLng(),
+                    allCoordinateBOS.get(i).getLat(), allCoordinateBOS.get(i).getLng()
             );
             totalDist += segment;
             distances.add(totalDist);
         }
 
-        DistanceSeries distanceSeries = new DistanceSeries();
-        distanceSeries.setDistances(distances);
-        distanceSeries.setTotalDist(totalDist);
-        return distanceSeries;
+        DistanceSeriesBO distanceSeriesBO = new DistanceSeriesBO();
+        distanceSeriesBO.setDistances(distances);
+        distanceSeriesBO.setTotalDist(totalDist);
+        return distanceSeriesBO;
     }
 
 
@@ -73,18 +72,18 @@ public class FitUtils {
         return Math.toIntExact(Math.round(weightKg * (totalDistMeters / 1000) * 1.036));
     }
 
-    public static ComputeSamplesResult computeSamples(List<Point> allPoints,
-                                      List<Double> distances,
-                                      Double totalDist,
-                                      Integer paceSecondsPerKm,
-                                      Integer hrRest,
-                                      Integer hrMax,
-                                      Double weightKg,
-                                      List<Double> altitudes
+    public static ComputeSamplesResultBO computeSamples(List<CoordinateBO> allCoordinateBOS,
+                                                        List<Double> distances,
+                                                        Double totalDist,
+                                                        Integer paceSecondsPerKm,
+                                                        Integer hrRest,
+                                                        Integer hrMax,
+                                                        Double weightKg,
+                                                        List<Double> altitudes
                                       ) {
 
 
-        int n = allPoints.size();
+        int n = allCoordinateBOS.size();
 //        总距离km
         Double totalDistanceKm = totalDist / 1000;
 //        总时间秒
@@ -93,7 +92,7 @@ public class FitUtils {
         Double avgSpeedTarget = totalDist / targetDurationSec;
 
 
-//        基础速度浮动系数�?.98~1.04），再加一点随机�?
+//        基础速度浮动系数0.98~1.04），再加一点随机
         double baseSpeedFactor = 0.98 + Math.random() * 0.06;
         double phase1 = Math.random() * Math.PI * 2;
         double phase2 = Math.random() * Math.PI * 2;
@@ -105,19 +104,19 @@ public class FitUtils {
 
         double currentHr = hrRest;
 
-        // 1️⃣ 模拟瞬时速度和心�?
+        // 1️⃣ 模拟瞬时速度和心率，基于距离比例设计速度起伏和心率变化
         for (int i = 0; i < n; i++) {
-//            进行到哪一部分�?
+//            进行到哪一部分了，距离比例[0,1]
             double frac = distances.get(i) / totalDist;
 //模拟跑步中长期的速度起伏
             double longWave = 0.04 * Math.sin(frac * Math.PI * 2 + phase1);
-//            周期更短，波峰更密集 �?快速小幅波动，±2% 的速度波动
+//            周期更短，波峰更密集 快速小幅波动，±2% 的速度波动
             double shortWave = 0.02 * Math.sin(frac * Math.PI * 6 + phase2);
-//            每个轨迹点的瞬时速度（m/s�?
+//            每个轨迹点的瞬时速度（m/s），在平均速度的基础上叠加长短波动
             double speedRaw = avgSpeedTarget * baseSpeedFactor * (1 + longWave + shortWave);
             instSpeedRaw[i] = speedRaw;
 
-//            当前跑步比目标快还是慢，瞬时速度转成了一个百分比努力强度，[0,1]，用于后续心率计�?
+//            当前跑步比目标快还是慢，瞬时速度转成了一个百分比努力强度，[0,1]，用于后续心率计算，努力程度越高心率越接近最大心率
             double effort = Math.min(1.0, Math.max(0.0, speedRaw / (avgSpeedTarget == 0 ? 1e-6 : avgSpeedTarget)));
 
 //            基础运动强度，最终用来计算心�?
@@ -147,7 +146,7 @@ public class FitUtils {
         double[] segDurationsRaw = new double[Math.max(0, n)];
         double rawDuration = 0;
         for (int i = 1; i < n; i++) {
-//            每段的距�?
+//            每段的距离
             double ds = distances.get(i) - distances.get(i - 1);
             double v = instSpeedRaw[i] > 0 ? instSpeedRaw[i] : avgSpeedTarget;
             double dt = ds / v;
@@ -158,14 +157,14 @@ public class FitUtils {
         double scale = rawDuration > 0 ? targetDurationSec / rawDuration : 1;
 
         // 3️⃣ 构建样本列表
-        List<SampleDto> samples = new ArrayList<>();
+        List<SampleBO> samples = new ArrayList<>();
         double t = 0;
 
         for (int i = 0; i < n; i++) {
             double speed = instSpeedRaw[i] / scale;
             double frac = distances.get(i) / totalDist;
 
-//            步频（步/分钟�?
+//            步频（步/分钟）
             double runningCadence = simulateCadence(speed);
 //            步幅（m/步）
             double strideLength = runningCadence > 0 ? speed / (runningCadence / 60.0) : 1.0;
@@ -178,13 +177,13 @@ public class FitUtils {
                     : baseAlt + 2 * Math.sin(frac * Math.PI * 4) + (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.8;
             t += segDurationsRaw[i] * scale;
 
-            SampleDto sample = new SampleDto();
+            SampleBO sample = new SampleBO();
             sample.setTimeSec(t);
             sample.setDistance(distances.get(i));
             sample.setSpeed(speed);
             sample.setHeartRate(hrValues[i]);
-            sample.setLat(allPoints.get(i).getLat());
-            sample.setLng(allPoints.get(i).getLng());
+            sample.setLat(allCoordinateBOS.get(i).getLat());
+            sample.setLng(allCoordinateBOS.get(i).getLng());
             sample.setRunningCadence(runningCadence);
             sample.setStrideLength(strideLength);
             sample.setPower(power);
@@ -199,9 +198,9 @@ public class FitUtils {
 //        总时
         Double totalDurationSec = samples.isEmpty() ? targetDurationSec :  samples.get(samples.size() - 1).getTimeSec();
 //平均步频
-        double avgRunningCadence = Math.round(samples.stream().mapToDouble(SampleDto::getRunningCadence).average().orElse(0));
-        double avgStrideLength = samples.stream().mapToDouble(SampleDto::getStrideLength).average().orElse(0);
-        int avgPower = (int) Math.round(samples.stream().mapToInt(SampleDto::getPower).average().orElse(0));
+        double avgRunningCadence = Math.round(samples.stream().mapToDouble(SampleBO::getRunningCadence).average().orElse(0));
+        double avgStrideLength = samples.stream().mapToDouble(SampleBO::getStrideLength).average().orElse(0);
+        int avgPower = (int) Math.round(samples.stream().mapToInt(SampleBO::getPower).average().orElse(0));
 
         double totalAscent = 0;
         double totalDescent = 0;
@@ -211,7 +210,7 @@ public class FitUtils {
             else totalDescent += Math.abs(diff);
         }
 
-        ComputeSamplesResult result = new ComputeSamplesResult();
+        ComputeSamplesResultBO result = new ComputeSamplesResultBO();
         result.setSamples(samples);
         result.setTotalDurationSec(totalDurationSec);
         result.setAvgRunningCadence(avgRunningCadence);

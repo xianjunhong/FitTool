@@ -1,9 +1,7 @@
 package com.fittool.service;
 
-import com.fittool.domain.Point;
+import com.fittool.bo.CoordinateBO;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -45,29 +43,29 @@ public class ElevationService {
                 .build();
     }
 
-    public List<Double> fetchAltitudesOrNull(List<Point> points) {
-        if (!enabled || points == null || points.isEmpty()) {
+    public List<Double> fetchAltitudesOrNull(List<CoordinateBO> coordinateBOS) {
+        if (!enabled || coordinateBOS == null || coordinateBOS.isEmpty()) {
             return null;
         }
 
         try {
-            return fetchAltitudes(points);
+            return fetchAltitudes(coordinateBOS);
         } catch (Exception ex) {
             log.warn("Open-Elevation 请求失败，回退到本地模拟海拔: {}", ex.getMessage());
             return null;
         }
     }
 
-    private List<Double> fetchAltitudes(List<Point> points) {
-        List<Double> altitudes = new ArrayList<>(points.size());
+    private List<Double> fetchAltitudes(List<CoordinateBO> coordinateBOS) {
+        List<Double> altitudes = new ArrayList<>(coordinateBOS.size());
 
-        for (int start = 0; start < points.size(); start += batchSize) {
-            int end = Math.min(start + batchSize, points.size());
-            List<Point> chunk = points.subList(start, end);
+        for (int start = 0; start < coordinateBOS.size(); start += batchSize) {
+            int end = Math.min(start + batchSize, coordinateBOS.size());
+            List<CoordinateBO> chunk = coordinateBOS.subList(start, end);
 
             List<ElevationLocation> locations = new ArrayList<>(chunk.size());
-            for (Point point : chunk) {
-                locations.add(new ElevationLocation(point.getLat(), point.getLng()));
+            for (CoordinateBO coordinateBO : chunk) {
+                locations.add(new ElevationLocation(coordinateBO.getLat(), coordinateBO.getLng()));
             }
 
             ElevationLookupResponse response = restClient.post()
