@@ -603,8 +603,8 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="action-grid">
-            <el-button type="info" plain @click="locateCurrentPosition">定位当前位置</el-button>
-            <el-button @click="clearRoute">清除轨迹</el-button>
+            <el-button type="warning"  @click="locateCurrentPosition">定位当前位置</el-button>
+            <el-button type="info" @click="clearRoute">清除轨迹</el-button>
             <el-button type="primary" :loading="isPreviewLoading" @click="runPreview">预览曲线</el-button>
             <el-button type="success" :loading="isDownloadLoading" @click="downloadFit">生成 FIT 文件</el-button>
           </div>
